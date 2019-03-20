@@ -1,0 +1,6 @@
+---
+- name: create directory /opt/ssl/
+  file: path=/opt/ssl/ state=directory owner=root group=root mode=0755
+
+- name: pull own rootca from git repo
+  git: repo='https://github.com/martiszhang/certificates.git' dest=/opt/ssl/

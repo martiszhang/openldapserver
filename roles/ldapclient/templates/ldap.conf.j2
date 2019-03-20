@@ -1,0 +1,5 @@
+uri ldap://{{ groups['openldap'] | join('') }}
+host {{ groups['openldap'] | join('') }}
+port  389
+ssl   no
+base ou=development,dc=ctyun,dc=cn

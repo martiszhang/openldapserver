@@ -1,0 +1,35 @@
+---
+- name: yum install nss-pam-ldapd/openldap/openldap-clients
+  yum: name={{ item }} state=present 
+  loop:
+    - openldap
+    - openldap-clients
+    - nss-pam-ldapd
+    - openssh-ldap
+- name: config ldap client to use ldap server
+  shell: authconfig --enableldap --enableldapauth --enablemkhomedir --enableldaptls --enableldapstarttls --ldaploadcacert=file:///opt/ssl/rootca/rootca.crt --ldapserver=ldap://"{{ groups['openldap'] | join('') }}" --ldapbasedn="ou=development,dc=ctyun,dc=cn"  --update  
+
+- name: copy sudo-ldap.conf  to {{ inventory_hostname }}
+  template: src=sudo-ldap.conf.j2 dest=/etc/sudo-ldap.conf owner=root group=root mode=0640
+
+- name: Add sudoer config to file /etc/nsswitch.conf
+  lineinfile:
+    path: /etc/nsswitch.conf
+    line: 'sudoers:    files ldap'
+    create: yes
+
+- name: copy ldap.conf.j2  to {{ inventory_hostname }}
+  template: src=ldap.conf.j2 dest=/etc/ssh/ldap.conf owner=root group=root mode=0644
+
+- name: Add AuthorizedKeysCommand/AuthorizedKeysCommandRunAs/PubkeyAuthentication  config to file /etc/ssh/sshd.conf
+  lineinfile:
+    path: /etc/ssh/sshd_config
+    line: "{{ item }}"
+    create: yes
+  loop: 
+    - AuthorizedKeysCommand    /usr/libexec/openssh/ssh-ldap-wrapper
+    - AuthorizedKeysCommandUser    nobody
+    - PubkeyAuthentication    yes
+
+- name: restart sshd process
+  systemd: name=sshd state=restarted enabled=yes masked=no

@@ -1,0 +1,18 @@
+[all:vars]
+hostdomain=exmaple.com
+[local]
+192.168.18.6 name=zhang
+
+[openldap]
+192.168.18.8
+[openldap:vars]
+proggram_certs_dir=openldap
+proggram_certs_owner=ldap
+olcSuffix="dc=ctyun,dc=cn"
+olcRootDN="cn=admin,{{olcSuffix}}"
+
+[ldapclient]
+192.168.18.10
+
+[etcd]
+192.168.18.7

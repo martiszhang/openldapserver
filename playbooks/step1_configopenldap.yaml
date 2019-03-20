@@ -1,0 +1,6 @@
+---
+- hosts: openldap
+  roles:
+    #- configyum
+    #- configpip
+    - openldap

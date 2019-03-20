@@ -1,0 +1,16 @@
+dn: cn=config
+objectClass: olcGlobal
+cn: config
+olcArgsFile: /var/run/openldap/slapd.args
+olcPidFile: /var/run/openldap/slapd.pid
+structuralObjectClass: olcGlobal
+olcTLSCACertificateFile: /opt/ssl/rootca/rootca.crt
+olcTLSCertificateFile: /opt/ssl/{{proggram_certs_dir}}/{{proggram_certs_dir}}.crt
+olcTLSCertificateKeyFile: /opt/ssl/{{proggram_certs_dir}}/{{proggram_certs_dir}}.key
+olcLogLevel: 256 
+entryUUID: 3ce7bddc-de16-1038-9a9b-3fb9a2d0965a
+createTimestamp: 20190104151623Z
+entryCSN: 20190104151623.889041Z#000000#000#000000
+creatorsName: cn=config
+modifiersName: cn=config
+modifyTimestamp: 20190104151623Z

@@ -1,0 +1,69 @@
+---
+- name: Install software pyOpenSSL
+  pip:
+    name: "{{ item }}"
+    state: latest
+  loop:
+    - pyOpenSSL
+
+- name: refresh  system info
+  setup:
+
+- name: set variable hostname 
+  set_fact: hostname=DNS:{{ ansible_fqdn }}
+
+- name: set variable sub_dns
+  set_fact: sub_dns={{ hostname.split() }}
+
+- name: set variable sub_ips
+  set_fact: sub_ips={{ ansible_all_ipv4_addresses | map('regex_replace', '^', 'IP:') | list }}
+
+- name: set fact
+  set_fact: subject={{ sub_dns + sub_ips }} 
+
+- name: debug
+  debug: msg={{ subject }}
+
+- name: set variable age for rootca.crt valid age
+  set_fact:  time="{{ lookup('pipe', 'date -d \"+100 year\" +\"%Y%m%d%H%M%S\"') }}"
+
+- name: debug 
+  debug: msg={{ time }}
+
+- name: create dir /opt/ssl/{{ proggram_certs_dir }}
+  file: 
+   path: /opt/ssl/{{ proggram_certs_dir }} 
+   state: directory 
+   mode: 0755 
+   owner: "{{ proggram_certs_owner | default('root') }}"
+   group: "{{ proggram_certs_owner | default('root') }}"
+
+- name: generate {{ ansible_hostname }}.ke private key
+  openssl_privatekey:
+   path: "/opt/ssl/{{ proggram_certs_dir }}/{{ proggram_certs_dir }}.key" 
+   owner: "{{ proggram_certs_owner | default('root') }}"
+   group: "{{ proggram_certs_owner | default('root') }}"
+
+- name: Generate an OpenSSL Certificate Signing Request {{ proggram_certs_dir }}.csr
+  openssl_csr:
+   path: "/opt/ssl/{{ proggram_certs_dir }}/{{ proggram_certs_dir }}.csr"
+   privatekey_path: "/opt/ssl/{{ proggram_certs_dir }}/{{ proggram_certs_dir }}.key"
+   country_name: CN
+   state_or_province_name: Beijing
+   organization_name: Cloud
+   organizational_unit_name: Development
+   common_name: "*.{{ ansible_domain }}" 
+   subject_alt_name: "{{ subject }}"
+   owner: "{{ proggram_certs_owner | default('root') }}"
+   group: "{{ proggram_certs_owner | default('root') }}"
+
+- name: Generate an OpenSSL certificate signed with rootca.crt certificate
+  openssl_certificate: 
+    path: "/opt/ssl/{{ proggram_certs_dir }}/{{ proggram_certs_dir }}.crt"
+    csr_path: "/opt/ssl/{{ proggram_certs_dir }}/{{ proggram_certs_dir }}.csr"
+    ownca_path: /opt/ssl/rootca/rootca.crt
+    ownca_privatekey_path: /opt/ssl/rootca/rootca.key
+    ownca_not_after: "{{ time }}Z"
+    provider: ownca
+    owner: "{{ proggram_certs_owner | default('root') }}"
+    group: "{{ proggram_certs_owner | default('root') }}"

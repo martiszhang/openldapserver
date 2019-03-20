@@ -1,0 +1,320 @@
+---
+#- name: yum install openldap client and server
+#  yum: name={{ item }} state=present
+#  loop:
+#   - openldap 
+#   - openldap-clients 
+#   - openldap-servers
+#   - openssh-ldap
+#
+#- name: yum install python-devel/openldap-devel for python-ldap
+#  yum: name={{ item }} state=present
+#  loop:
+#   - python-devel
+#   - openldap-devel
+#
+#- name: Install software python-ldap
+#  pip:
+#    name: "{{ item }}"
+#    state: latest
+#  loop:
+#    - python-ldap
+#
+#- name: copy config file cn=config.ldif to openldap server 
+#  template: src='cn=config.ldif.j2' dest=/etc/openldap/slapd.d/cn=config.ldif owner=ldap group=ldap mode=0644
+#
+#- name: Copy DB_CONFG to /var/lib/ldap/DB_CONFIG
+#  copy: src=/usr/share/openldap-servers/DB_CONFIG.example dest=/var/lib/ldap/DB_CONFIG  owner=ldap group=ldap mode=0755 remote_src=yes
+#
+#- name: Make sure openldap service is running
+#  systemd: name=slapd state=started enabled=yes masked=no
+#
+##- name: Get rid of an unneeded  olcTLSCACertificatePath attribute and modify tls attribe
+##  ldap_attr:
+##    dn: cn=config
+##    name: "{{ item.key }}"
+##    values: "{{ item.value }}"
+##    state: exact
+##  with_dict:
+##    olcTLSCACertificatePath: [] 
+##    olcTLSCACertificateFile: /opt/ssl/rootca/rootca.crt
+##    olcTLSCertificateFile: /opt/ssl/{{proggram_certs_dir}}/{{proggram_certs_dir}}.crt
+##    olcTLSCertificateKeyFile: /opt/ssl/{{proggram_certs_dir}}/{{proggram_certs_dir}}.key
+##    olcLogLevel: 8
+##  ignore_errors: true
+##
+##- name: Get rid of an unneeded  olcTLSCACertificatePath attribute and modify tls attribe
+##  ldap_attr:
+##    dn: cn=config
+##    name: "{{ item.key }}"
+##    values: "{{ item.value }}"
+##    state: exact
+##  with_dict:
+##    olcTLSCACertificatePath: []
+##    olcTLSCACertificateFile: /opt/ssl/rootca/rootca.crt
+##    olcTLSCertificateFile: /opt/ssl/{{proggram_certs_dir}}/{{proggram_certs_dir}}.crt
+##    olcTLSCertificateKeyFile: /opt/ssl/{{proggram_certs_dir}}/{{proggram_certs_dir}}.key
+##    olcLogLevel: 8
+#
+#- name: Make sure openldap service is running
+#  systemd: name=slapd state=restarted enabled=yes masked=no
+#
+#- name: Modify hdb olcsufix
+#  ldap_attr:
+#    dn: olcDatabase={2}hdb,cn=config
+#    name: olcSuffix
+#    values: "{{ olcSuffix }}"
+#    state: exact
+#
+#- name: Modify hdb olcRootDN
+#  ldap_attr:
+#    dn: olcDatabase={2}hdb,cn=config
+#    name: olcRootDN
+#    values: "{{ olcRootDN }}"
+#    state: exact
+#
+#- name: Add hdb olcRootPW 
+#  ldap_attr:
+#    dn: olcDatabase={2}hdb,cn=config
+#    name: olcRootPW
+#    values: "{{ olcRootPW | default('M4ssQrm0*!@#') }}"
+#    state: exact
+#
+##- name: Set up the ACL
+##  ldap_attr:
+##    dn: "olcDatabase={2}hdb,cn=config"
+##    name: olcAccess
+##    values:
+##      - >-
+##        {0}to attrs=userPassword,shadowLastChange
+##        by self write
+##        by anonymous auth
+##        by dn="cn=admin,{{ olcSuffix }}" write
+##        by * none
+##      - >-
+##        {1}to dn.base=""
+##        by dn="cn=admin,{{ olcSuffix }}" write
+##        by * read
+##    state: exact
+#
+#- name: ldapsearch schema cosine
+#  shell: ldapsearch  -Y EXTERNAL -LLL -H ldapi:///  -b cn=schema,cn=config  'cn=*cosine' cn  
+#  register: schemacosine
+#
+#- name: load schema cosine  to openldap server 
+#  shell: ldapadd -Y EXTERNAL -H ldapi:/// -f /etc/openldap/schema/cosine.ldif 
+#  when: schemacosine.stdout == ""
+#
+#- name: ldapsearch schema inetorgperson
+#  shell: ldapsearch -Y EXTERNAL  -LLL  -H ldapi:///  -b cn=schema,cn=config  'cn=*inetorgperson' cn
+#  register: schemainetorgperson
+#
+#- name: load schema inetorgperson  to openldap server
+#  shell: ldapadd -Y EXTERNAL -H ldapi:/// -f /etc/openldap/schema/inetorgperson.ldif
+#  when: schemainetorgperson.stdout == "" 
+#
+#- name: ldapsearch schema nis
+#  shell: ldapsearch  -Y EXTERNAL -LLL -H ldapi:///  -b cn=schema,cn=config  'cn=*nis' cn
+#  register: schemanis
+#
+#- name: load schema nis  to openldap server
+#  shell: ldapadd -Y EXTERNAL -H ldapi:/// -f /etc/openldap/schema/nis.ldif
+#  when: schemanis.stdout == "" 
+#
+#- name: ldapsearch schema sudo
+#  shell: ldapsearch  -Y EXTERNAL  -LLL -H ldapi:///  -b cn=schema,cn=config  'cn=*sudo' dn
+#  register: schemasudo
+#
+#- name: copy file sudo.ldif to openldap server /tmp/
+#  copy: src=sudo.ldif  dest=/tmp owner=root group=root mode=0755
+#  when: schemasudo.stdout == ""
+# 
+#- name: load schema sudo.ldif  to openldap server 
+#  shell: ldapadd -Y EXTERNAL -H ldapi:/// -f /tmp/sudo.ldif  
+#  when: schemasudo.stdout == ""
+#
+#- name: ldapsearch schema openssh-lpk-openldap
+#  shell: ldapsearch  -Y EXTERNAL  -LLL -H ldapi:///  -b cn=schema,cn=config  'cn=*openssh-lpk' dn
+#  register: schemaopenssh
+#
+#- name: load schema openssh-lpk-openldap.ldif  to openldap server
+#  shell: ldapadd -Y EXTERNAL -H ldapi:/// -f /usr/share/doc/openssh-ldap-7.4p1/openssh-lpk-openldap.ldif 
+#  when: schemaopenssh.stdout == ""
+#
+#- name: Add entry organization 
+#  ldap_entry:
+#    dn: "{{ olcSuffix }}" 
+#    objectClass:
+#      - dcObject
+#      - organization
+#    attributes:
+#      o: CtyunCloudCompany
+#      dc: ctyun
+#    bind_dn: "{{ olcRootDN }}"
+#    bind_pw: "{{ olcRootPW | default('M4ssQrm0*!@#') }}" 
+#
+#- name: Add entry organizationUnit development
+#  ldap_entry:
+#    dn: "ou=development,{{ olcSuffix }}"
+#    objectClass:
+#      - organizationalUnit 
+#      - top
+#    attributes:
+#      ou: development 
+#    bind_dn: "{{ olcRootDN }}"
+#    bind_pw: "{{ olcRootPW | default('M4ssQrm0*!@#') }}"
+#
+#- name: test
+#  debug: msg="{{ item.0  }}===> {{ item.1 }}"
+#  with_indexed_items:
+#    - operation
+#    - sdn
+#    - dtp
+#    - caas
+#
+#- name: Add entry gropu operation  under organizationUnit development
+#  ldap_entry:
+#    dn: "cn={{ item.1 }},ou=development,{{ olcSuffix }}"
+#    objectClass:
+#      - posixGroup 
+#      - top
+#    attributes:
+#      cn: "{{ item.1 }}"
+#      gidNumber: "{{ 500 + item.0 }}" 
+#    bind_dn: "{{ olcRootDN }}"
+#    bind_pw: "{{ olcRootPW | default('M4ssQrm0*!@#') }}"
+#    state: present
+#  with_indexed_items:
+#    - operation
+#    - sdn
+#    - dtp
+#    - caas
+#
+#
+#
+##- name: print vars
+##  debug: msg="{{ item.key }}"
+##  loop: "{{ lookup('dict', users) }}"
+#
+#- name: Add entry user under organizationUnit development
+#  ldap_entry:
+#    dn: "uid={{ item.key }},cn=operation,ou=development,dc=ctyun,dc=cn"
+#    objectClass:
+#      - account
+#      - posixAccount
+#      - shadowAccount
+#      - ldapPublicKey
+#      - top
+#    state: present 
+#    bind_dn: "{{ olcRootDN }}"
+#    bind_pw: "{{ olcRootPW | default('M4ssQrm0*!@#') }}"
+#    attributes:
+#      shadowMin: 0
+#      shadowMax: 99999
+#      shadowWarning: 7
+#      loginShell: /bin/bash
+#      userPassword: M4ssQrm0*!@#
+#      cn: "{{ item.key }}"
+#      uidNumber: "{{ item.value.uid }}" 
+#      gidNumber: "{{ item.value.gid }}"
+#      homeDirectory: "/home/{{ item.key }}"
+#      sshPublicKey: "{{ item.value.sshPublicKey }}"
+#      gecos: "{{ item.key }}"
+#  loop: "{{ lookup('dict', users) }}"
+#
+#- name: Set up the ACL
+#  ldap_attr:
+#    dn: "olcDatabase={2}hdb,cn=config"
+#    name: olcAccess
+#    values:
+#      - >-
+#        {0}to attrs=userPassword,shadowLastChange
+#        by self write
+#        by anonymous auth
+#        by dn="cn=admin,{{ olcSuffix }}" write
+#        by * none
+#      - >-
+#        {1}to dn.children="{{ olcSuffix }}"
+#        by dn="cn=admin,{{ olcSuffix }}" write
+#        by * read
+#    state: exact
+
+- name: Add  entry sudo  under organizationUnit development
+  ldap_entry:
+    dn: "ou=sudoers,ou=development,{{ olcSuffix }}"
+    objectClass:
+      - organizationalUnit 
+      - top
+    attributes:
+      ou: sudoers
+    bind_dn: "{{ olcRootDN }}"
+    bind_pw: "{{ olcRootPW | default('M4ssQrm0*!@#') }}"
+    state: present
+
+- name: Add entry default under sudoers 
+  ldap_entry:
+    dn: "cn=defaults,ou=sudoers,ou=development,{{ olcSuffix }}"
+    objectClass:
+      - sudoRole
+      - top
+    attributes:
+      description: Default sudoOption's go here
+    bind_dn: "{{ olcRootDN }}"
+    bind_pw: "{{ olcRootPW | default('M4ssQrm0*!@#') }}"
+    state: present
+
+- name: Modify sudo option dn cn=defaults,ou=sudoers,ou=development,{{ olcSuffix }}"
+  ldap_attr:
+    dn: "cn=defaults,ou=sudoers,ou=development,{{ olcSuffix }}"
+    name: sudoOption
+    values:
+      - >-
+        requiretty
+      - >-
+        env_reset
+      - >-
+        !visiblepw
+      - >-
+        authenticate
+      - >-
+        always_set_home
+      - >-
+        env_keep="COLORS DISPLAY HOSTNAME HISTSIZE INPUTRC KDEDIR LS_COLORS"
+      - >-
+        env_keep+="MAIL PS1 PS2 QTDIR USERNAME LANG LC_ADDRESS LC_CTYPE"
+      - >-
+        env_keep+="LC_COLLATE LC_IDENTIFICATION LC_MEASUREMENT LC_MESSAGES"
+      - >-
+        env_keep+="LC_MONETARY LC_NAME LC_NUMERIC LC_PAPER LC_TELEPHONE"
+      - >-
+        env_keep+="LC_TIME LC_ALL LANGUAGE LINGUAS _XKB_CHARSET XAUTHORITY"
+    bind_dn: "{{ olcRootDN }}"
+    bind_pw: "{{ olcRootPW | default('M4ssQrm0*!@#') }}"
+    state: exact 
+
+- name: Add entry %operation under sudoers
+  ldap_entry:
+    dn: "cn=%operation,ou=sudoers,ou=development,{{ olcSuffix }}"
+    objectClass:
+      - sudoRole
+      - top
+    attributes:
+      sudoUser: "%operation"
+      sudoHost: ALL
+      sudoRunas: ALL
+      sudoCommand: ALL
+    bind_dn: "{{ olcRootDN }}"
+    bind_pw: "{{ olcRootPW | default('M4ssQrm0*!@#') }}"
+    state: present
+
+- name: Modify sudo option dn "cn=%operation,ou=sudoers,ou=development,{{ olcSuffix }}"
+  ldap_attr:
+    dn: "cn=%operation,ou=sudoers,ou=development,{{ olcSuffix }}"
+    name: sudoOption
+    values:
+      - >-
+        !authenticate
+    bind_dn: "{{ olcRootDN }}"
+    bind_pw: "{{ olcRootPW | default('M4ssQrm0*!@#') }}"
+    state: exact
+

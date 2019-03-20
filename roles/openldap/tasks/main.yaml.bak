@@ -1,0 +1,192 @@
+---
+- name: yum install openldap client and server
+  yum: name={{ item }} state=present
+  loop:
+   - openldap 
+   - openldap-clients 
+   - openldap-servers
+   - openssh-ldap
+
+- name: yum install python-devel/openldap-devel for python-ldap
+  yum: name={{ item }} state=present
+  loop:
+   - python-devel
+   - openldap-devel
+
+- name: Install software python-ldap
+  pip:
+    name: "{{ item }}"
+    state: latest
+  loop:
+    - python-ldap
+
+- name: Make sure openldap service is running
+  systemd: name=slapd state=started enabled=yes masked=no
+
+- name: Get rid of an unneeded  olcTLSCACertificatePath attribute and modify tls attribe
+  ldap_attr:
+    dn: cn=config
+    name: "{{ item.key }}"
+    values: "{{ item.value }}"
+    state: exact
+  with_dict:
+    olcTLSCACertificatePath: [] 
+    olcTLSCACertificateFile: /opt/ssl/rootca/rootca.crt
+    olcTLSCertificateFile: /opt/ssl/{{proggram_certs_dir}}/{{proggram_certs_dir}}.crt
+    olcTLSCertificateKeyFile: /opt/ssl/{{proggram_certs_dir}}/{{proggram_certs_dir}}.key
+    olcLogLevel: 8
+  ignore_errors: true
+
+- name: Get rid of an unneeded  olcTLSCACertificatePath attribute and modify tls attribe
+  ldap_attr:
+    dn: cn=config
+    name: "{{ item.key }}"
+    values: "{{ item.value }}"
+    state: exact
+  with_dict:
+    olcTLSCACertificatePath: []
+    olcTLSCACertificateFile: /opt/ssl/rootca/rootca.crt
+    olcTLSCertificateFile: /opt/ssl/{{proggram_certs_dir}}/{{proggram_certs_dir}}.crt
+    olcTLSCertificateKeyFile: /opt/ssl/{{proggram_certs_dir}}/{{proggram_certs_dir}}.key
+    olcLogLevel: 8
+
+- name: Make sure openldap service is running
+  systemd: name=slapd state=restarted enabled=yes masked=no
+
+- name: Modify hdb olcsufix
+  ldap_attr:
+    dn: olcDatabase={2}hdb,cn=config
+    name: olcSuffix
+    values: "{{ olcSuffix }}"
+    state: exact
+
+- name: Modify hdb olcRootDN
+  ldap_attr:
+    dn: olcDatabase={2}hdb,cn=config
+    name: olcRootDN
+    values: "{{ olcRootDN }}"
+    state: exact
+
+- name: Add hdb olcRootPW 
+  ldap_attr:
+    dn: olcDatabase={2}hdb,cn=config
+    name: olcRootPW
+    values: "{{ olcRootPW | default('M4ssQrm0*!@#') }}"
+    state: exact
+
+- name: ldapsearch schema cosine
+  shell: ldapsearch   -LLL -H ldapi:///  -b cn=schema,cn=config  'cn=*cosine' cn  
+  register: schemacosine
+
+- name: load schema cosine  to openldap server 
+  shell: ldapadd -H ldapi:/// -f /etc/openldap/schema/cosine.ldif 
+  when: schemacosine.stdout == ""
+
+- name: ldapsearch schema inetorgperson
+  shell: ldapsearch   -LLL -H ldapi:///  -b cn=schema,cn=config  'cn=*inetorgperson' cn
+  register: schemainetorgperson
+
+- name: load schema inetorgperson  to openldap server
+  shell: ldapadd -H ldapi:/// -f /etc/openldap/schema/inetorgperson.ldif
+  when: schemainetorgperson.stdout == "" 
+
+- name: ldapsearch schema nis
+  shell: ldapsearch   -LLL -H ldapi:///  -b cn=schema,cn=config  'cn=*nis' cn
+  register: schemanis
+
+- name: load schema nis  to openldap server
+  shell: ldapadd -H ldapi:/// -f /etc/openldap/schema/nis.ldif
+  when: schemanis.stdout == "" 
+
+- name: ldapsearch schema sudo
+  shell: ldapsearch   -LLL -H ldapi:///  -b cn=schema,cn=config  'cn=*sudo' dn
+  register: schemasudo
+
+- name: copy file sudo.ldif to openldap server /tmp/
+  copy: src=sudo.ldif  dest=/tmp owner=root group=root mode=0755
+  when: schemasudo.stdout == ""
+ 
+- name: load schema sudo.ldif  to openldap server 
+  shell: ldapadd -H ldapi:/// -f /tmp/sudo.ldif  
+  when: schemasudo.stdout == ""
+
+- name: ldapsearch schema openssh-lpk-openldap
+  shell: ldapsearch   -LLL -H ldapi:///  -b cn=schema,cn=config  'cn=*openssh-lpk' dn
+  register: schemaopenssh
+
+- name: load schema openssh-lpk-openldap.ldif  to openldap server
+  shell: ldapadd -H ldapi:/// -f /usr/share/doc/openssh-ldap-7.4p1/openssh-lpk-openldap.ldif 
+  when: schemaopenssh.stdout == ""
+
+- name: Add entry organization 
+  ldap_entry:
+    dn: "{{ olcSuffix }}" 
+    objectClass:
+      - dcObject
+      - organization
+    attributes:
+      o: CtyunCloudCompany
+      dc: ctyun
+    bind_dn: "{{ olcRootDN }}"
+    bind_pw: "{{ olcRootPW | default('M4ssQrm0*!@#') }}" 
+
+- name: Add entry organizationUnit development
+  ldap_entry:
+    dn: "ou=development,{{ olcSuffix }}"
+    objectClass:
+      - organizationalUnit 
+      - top
+    attributes:
+      ou: development 
+    bind_dn: "{{ olcRootDN }}"
+    bind_pw: "{{ olcRootPW | default('M4ssQrm0*!@#') }}"
+
+- name: test
+  debug: msg="{{ item.0  }}===> {{ item.1 }}"
+  with_indexed_items:
+    - operation
+    - sdn
+    - dtp
+    - caas
+
+- name: Add entry gropu operation  under organizationUnit development
+  ldap_entry:
+    dn: "cn={{ item.1 }},ou=development,{{ olcSuffix }}"
+    objectClass:
+      - posixGroup 
+      - top
+    attributes:
+      cn: "{{ item.1 }}"
+      gidNumber: "{{ 500 + item.0 }}" 
+    bind_dn: "{{ olcRootDN }}"
+    bind_pw: "{{ olcRootPW | default('M4ssQrm0*!@#') }}"
+  with_indexed_items:
+    - operation
+    - sdn
+    - dtp
+    - caas
+
+- name: Add entry user under organizationUnit development
+  ldap_entry:
+    dn: "cn=zhangjunfeng,cn=operation,ou=development,dc=ctyun,dc=cn"
+    objectClass:
+      - posixAccount
+      - shadowAccount
+      - ldapPublicKey
+      - inetOrgPerson 
+      - top
+    state: present
+    bind_dn: "{{ olcRootDN }}"
+    bind_pw: "{{ olcRootPW | default('M4ssQrm0*!@#') }}"
+    attributes:
+      shadowMin: 0
+      shadowMax: 99999
+      shadowWarning: 7
+      loginShell: /bin/bash
+      userPassword: M4ssQrm0*!@#
+      sn: "zhangjunfeng"
+      uid: "zhangjunfeng"
+      uidNumber: "1025" 
+      gidNumber: "500"
+      homeDirectory: "/home/zhangjunfeng"
+      sshPublicKey: "ssh-dss AAAAB3NzaC1kc3MAAACBAMnejVYbkEqjm9Pr7jkxYvIekqe3QTWWwJu7mOVIKZ8RnLycB4ELmHcXm9bth7zVP4pix3ZoBHySQQ5Zw4pqlrAAuPyH5zpRtb0ci+9dDAw23sY6wXKZXN1GIlZ2F3ilWFGA+CHj5G7iuW0LqZ6oKauIIyjeXNBwLzfHbd+o6wCRAAAAFQDpzPZsC/5kI7bgoucxwx2fZhZJYQAAAH9GrjT+Mc6Zy7fTfmMQ3YWGt8yoaNl814YluXsqUu+94eEYi/SU3uRpIsWRgjkzVBabrBZiCu+csamjWMcpf+v2HV6OSaK/bekW+VlGaR7vqSRY2Ae2Rl+9FiAeSrghESwe6b8GtCOtVxKApHp/hfQivl2vVAJgFXJlS0CQ6ZpMAAAAgQCEo4sSLTBlT4FKsr8kWqMkC5ecgAFlsmfdh99Siu6LYmp3Cwhw6AK32EpVHhJlUOTocQTRyK+97BDViFKujOBK0pB5ix0mQf24lVWZuf+qRFDCXMvJcXIym9b+ieKqj7U++egnGsMBDPY+VFrWTk5R0a5tKp+19KoTrdrh0nbXxg== zhang@DESKTOP-M21QICB" 

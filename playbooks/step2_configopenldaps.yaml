@@ -1,0 +1,8 @@
+---
+ - hosts: openldap
+   roles: 
+#     - configyum
+#     - configpip
+#     - pullownca
+#     - gencerts
+    - openldaps

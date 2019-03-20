@@ -1,0 +1,12 @@
+---
+- name: delete directory /etc/yum.repos.d/
+  file: path=/etc/yum.repos.d/ state=absent
+
+- name: create directory /etc/yum.repos.d/
+  file: path=/etc/yum.repos.d/ state=directory owner=root group=root mode=0755
+
+- name: copy server.repo/epel.repo to {{ inventory_hostname }} 
+  copy: src={{ item }}  dest=/etc/yum.repos.d/ mode=0644 owner=root group=root force=yes
+  loop:
+    - server.repo
+    - epel.repo

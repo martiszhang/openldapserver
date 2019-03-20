@@ -1,0 +1,4 @@
+uri ldap://{{ groups['openldap'] | join('') }}:389
+sudoers_base ou=sudoers,ou=development,dc=ctyun,dc=cn
+ssl start_tls
+tls_cacertfile /opt/ssl/rootca/rootca.crt

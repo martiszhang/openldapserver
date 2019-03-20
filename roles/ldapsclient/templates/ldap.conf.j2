@@ -1,0 +1,6 @@
+uri ldap://{{ groups['openldap'] | join('') }}
+host {{ groups['openldap'] | join('') }}
+port  389
+ssl start_tls
+tls_cacertfile /opt/ssl/rootca/rootca.crt
+base ou=development,dc=ctyun,dc=cn

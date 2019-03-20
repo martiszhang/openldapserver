@@ -1,0 +1,6 @@
+---
+- hosts: ldapclient 
+  roles:
+    - configyum
+    - pullownca
+    - ldapsclient 

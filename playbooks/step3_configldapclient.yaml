@@ -1,0 +1,5 @@
+---
+- hosts: ldapclient 
+  roles:
+    - configyum
+    - ldapclient 

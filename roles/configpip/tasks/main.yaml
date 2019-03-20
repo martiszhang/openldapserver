@@ -1,0 +1,4 @@
+---
+- name: install software python-pip for install pyOpenssl
+  yum: name=python-pip state=present
+

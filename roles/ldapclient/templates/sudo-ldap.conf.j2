@@ -1,0 +1,3 @@
+uri ldap://{{ groups['openldap'] | join('') }}:389
+sudoers_base ou=sudoers,ou=development,dc=ctyun,dc=cn
+ssl no 

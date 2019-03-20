@@ -1,0 +1,37 @@
+---
+- name: Modify dn cn=config   olcTLSCACertificatePath attribute and modify tls attribe
+  ldap_attr:
+    dn: cn=config
+    name: "{{ item.key }}"
+    values: "{{ item.value }}"
+    state: exact
+  with_dict:
+    olcTLSCACertificatePath: []
+    olcTLSCACertificateFile: /opt/ssl/rootca/rootca.crt
+    olcTLSCertificateFile: /opt/ssl/{{proggram_certs_dir}}/{{proggram_certs_dir}}.crt
+    olcTLSCertificateKeyFile: /opt/ssl/{{proggram_certs_dir}}/{{proggram_certs_dir}}.key
+    olcLogLevel: 8
+
+- name: Copy file slapd to /etc/sysconfig/slapd 
+  copy: src=slapd dest=/etc/sysconfig/ owner=root group=root mode=0644
+
+- name: Make sure openldap service is running
+  systemd: name=slapd state=restarted enabled=yes masked=no
+
+- name: Copy file ldap.conf.j2 to /etc/openldap/ldap.conf
+  template: src=ldap.conf.j2 dest=/etc/openldap/ldap.conf owner=ldap group=ldap mode=0644
+
+- name: check openldap server tls is ok
+  shell: ldapwhoami -v -x -Z
+  register: result
+
+- name: print result
+  debug: msg="{{ result }}"
+
+- name: openldap server tls is already ok
+  debug: msg="openldap server tls is already ok"
+  when: result.rc == 0
+
+- name: openldap server tls is not ok
+  fail: msg="openldap server tls is not ok"
+  when: result.rc != 0
